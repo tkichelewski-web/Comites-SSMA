@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comitês de SSMA — IP VIDAS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --verde:#07583C; --verde-2:#0A6B4A; --lima:#B3DD64; --lima-suave:#EAF5D6; --ambar:#FDB952; --vermelho:#DF4636;
+  --fundo:#F2F5F0; --papel:#FFFFFF; --tinta:#1C2B22; --muted:#5D6F64; --linha:#D5E3CC;
+  --erro:#B42318; --erro-bg:#FCE8E6; --aviso:#9A6B00; --aviso-bg:#FFF4DB; --cinza-bg:#EEF1EE;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--fundo);color:var(--tinta);font-size:15px;line-height:1.5}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--lima);outline-offset:2px}
+.hidden{display:none !important}
+
+header.topo{background:var(--verde);color:#fff;border-bottom:4px solid var(--lima)}
+.topo-inner{max-width:1280px;margin:0 auto;padding:16px 24px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap}
+.topo h1{margin:0;font-size:22px;line-height:1.2}
+.topo .sub{color:var(--lima);font-size:14px;font-weight:500}
+.topo .filtros{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.topo label{display:block;font-size:12px;color:#CFE6D6;margin-bottom:2px}
+.topo select{background:#0B6546;border:1px solid #2F7F60;color:#fff;border-radius:6px;padding:7px 10px;min-width:140px}
+.usuario-topo{font-size:13px;color:#CFE6D6;align-self:center}
+.usuario-topo b{color:#fff}
+.usuario-topo button{background:none;border:1px solid #2F7F60;color:#fff;border-radius:6px;padding:2px 10px;margin-left:8px;cursor:pointer;font-size:12px}
+
+main{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--linha);margin-bottom:18px}
+.aba{padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.aba.ativa{color:var(--verde);border-bottom-color:var(--verde)}
+
+.barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.barra .dir{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:6px;border:1px solid transparent;cursor:pointer;font-weight:600;background:none}
+.btn-primario{background:var(--verde);color:#fff}
+.btn-primario:hover{background:var(--verde-2)}
+.btn-primario:disabled{background:#8FA99A;cursor:not-allowed}
+.btn-sec{background:#fff;color:var(--verde);border-color:var(--linha)}
+.btn-sec:hover{border-color:var(--verde)}
+.btn-sec.ativo{background:var(--aviso-bg);border-color:var(--ambar);color:var(--aviso)}
+.btn-perigo{background:#fff;color:var(--erro);border-color:var(--erro-bg)}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
+.legenda i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.aviso-edicao{background:var(--aviso-bg);border:1px solid var(--ambar);color:var(--aviso);border-radius:6px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+
+.grupo-titulo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--verde);margin:18px 0 6px}
+.grade{overflow-x:auto;background:#fff;border:1px solid var(--linha);border-radius:8px}
+.grade table{border-collapse:collapse;width:100%;font-size:13px}
+.grade th,.grade td{border-bottom:1px solid var(--cinza-bg);padding:5px 4px;text-align:center}
+.grade th{background:var(--lima-suave);color:var(--verde);font-weight:700;white-space:nowrap}
+.grade th.atual{box-shadow:inset 0 -3px 0 var(--verde)}
+.grade td.ger{text-align:left;padding:7px 10px;min-width:240px}
+.grade td.ger b{display:block}
+.grade td.ger span{font-size:12px;color:var(--muted)}
+.grade td.tot{font-weight:700;white-space:nowrap;padding:0 10px}
+.cel{display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:62px;height:44px;border-radius:6px;border:1px dashed transparent;font-size:11px;line-height:1.15;cursor:default}
+.cel.clic{cursor:pointer}
+.cel .i{font-size:15px;font-weight:700}
+.c-plan{background:#fff;border:1px solid var(--ambar);color:var(--aviso)}
+.c-pend{background:var(--aviso-bg);border:1px solid var(--ambar);color:var(--aviso)}
+.c-ok{background:var(--verde);color:#fff}
+.c-tarde{background:var(--lima-suave);border:1px solid var(--lima);color:var(--verde)}
+.c-nok{background:var(--erro-bg);border:1px solid var(--vermelho);color:var(--erro)}
+.c-vazio.edit{border-color:var(--linha);color:var(--muted)}
+.c-vazio.edit:hover{border-color:var(--verde);color:var(--verde);background:var(--lima-suave)}
+
+.vazio{background:var(--papel);border:1px dashed var(--linha);border-radius:6px;padding:28px;text-align:center;color:var(--muted)}
+.carregando{color:var(--muted);padding:18px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 18px;border-radius:6px;z-index:80;font-size:14px}
+.toast.erro{background:var(--erro)}
+
+.fundo-modal{position:fixed;inset:0;background:rgba(12,30,20,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.modal{background:#fff;border-radius:10px;max-width:600px;width:100%;padding:22px 24px}
+.modal h3{margin:0 0 4px;color:var(--verde);font-size:19px}
+.modal .desc{margin:0 0 16px;color:var(--muted);font-size:14px}
+.campo{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.campo label{font-size:13px;font-weight:600;color:var(--muted)}
+.campo input,.campo select,.campo textarea{padding:9px 11px;border:1px solid var(--linha);border-radius:6px;background:#fff;width:100%}
+.campo textarea{min-height:64px;resize:vertical}
+.linha2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.linha2{grid-template-columns:1fr}}
+.meses-chk{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px}
+.meses-chk label{display:flex;gap:5px;align-items:center;font-size:13px;border:1px solid var(--linha);border-radius:6px;padding:6px 8px;cursor:pointer}
+.meses-chk input{accent-color:var(--verde)}
+.modal .rodape{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;flex-wrap:wrap}
+.erro-form{color:var(--erro);font-size:13px;margin:-4px 0 10px}
+.info-baixa{background:var(--fundo);border-radius:6px;padding:8px 12px;font-size:13px;color:var(--muted);margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-inner">
+    <div>
+      <h1>Comitês de SSMA</h1>
+      <div class="sub">Cronograma e baixa das reuniões de comitê</div>
+    </div>
+    <div class="filtros">
+      <div><label for="f-safra">Safra</label><select id="f-safra"></select></div>
+      <div><label for="f-unid">Unidade</label><select id="f-unid"></select></div>
+      <div class="usuario-topo" id="usuario-topo" hidden></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="abas" role="tablist">
+    <button class="aba ativa" data-aba="reun" role="tab">Reuniões</button>
+    <button class="aba" data-aba="capex" role="tab">Capex</button>
+  </div>
+
+  <section id="aba-reun">
+    <div class="barra">
+      <span id="resumo" style="color:var(--muted);font-size:14px"></span>
+      <div class="dir">
+        <button class="btn btn-sec hidden" id="btn-padrao">Marcar meses em lote</button>
+        <button class="btn btn-sec hidden" id="btn-editar">Editar calendário</button>
+        <button class="btn btn-sec" id="btn-exportar">Exportar (Excel)</button>
+      </div>
+    </div>
+    <div id="aviso-edicao" class="aviso-edicao hidden">Modo de edição: clique num mês vazio para planejar uma reunião, ou num mês planejado (sem baixa) para tirar. Clique em "Concluir edição" quando terminar.</div>
+    <div class="legenda">
+      <span><i style="border:1px solid var(--ambar)"></i>Planejada</span>
+      <span><i style="background:var(--aviso-bg);border:1px solid var(--ambar)"></i>Mês atual, falta baixa</span>
+      <span><i style="background:var(--verde)"></i>Realizada no mês</span>
+      <span><i style="background:var(--lima-suave);border:1px solid var(--lima)"></i>Realizada depois do mês (não conta)</span>
+      <span><i style="background:var(--erro-bg);border:1px solid var(--vermelho)"></i>Não realizada / cancelada</span>
+    </div>
+    <div id="grades"><div class="carregando">Carregando...</div></div>
+  </section>
+
+  <section id="aba-capex" class="hidden">
+    <div class="vazio">A importação das ações de Capex SSMA entra aqui quando o novo modelo de planilha da área de investimentos estiver definido.</div>
+  </section>
+</main>
+
+<div id="modal-raiz"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Conexão (mesmo projeto e sessão do portal)
+// ─────────────────────────────────────────────────────────────
+const SB_URL = 'https://umpctnchhmyvpjwxllaj.supabase.co';
+const SB_KEY = 'sb_publishable_lxiF04jATB1HMLINX-FvOg_3JOjXxrQ';
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, storageKey: 'sistema-ip-auth' } });
+const PORTAL_URL = 'https://tkichelewski-web.github.io/portal-ip/';
+// Quem pode montar o calendário (escolher os meses de cada gerência)
+const ADMIN_EMAILS = ['tkichelewski@usinasantaadelia.com.br'];
+
+const IND_BIM = 'Reuniões de Comitê de SSMA/Bimestral';
+const IND_QUAD = 'Reuniões de Comitê de SSMA/Quadrimestral';
+const MESES_SAFRA = [['04','Abr'],['05','Mai'],['06','Jun'],['07','Jul'],['08','Ago'],['09','Set'],['10','Out'],['11','Nov'],['12','Dez'],['01','Jan'],['02','Fev'],['03','Mar']];
+const NOMES_MES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let safras = [], unidades = [], gerencias = [], inds = {}, linhas = [], reunioes = [];
+let usuarioAtual = null, editando = false;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+const hojeMes = () => hojeISO().slice(0, 7);
+const fimDoMes = ym => { const [a, m] = ym.split('-').map(Number); return new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10); };
+const fmtData = d => d ? d.slice(0, 10).split('-').reverse().join('/') : '';
+const nomeMesLongo = ym => NOMES_MES[Number(ym.slice(5, 7)) - 1] + ' de ' + ym.slice(0, 4);
+const safraAtual = () => safras.find(s => s.id === Number($('f-safra').value));
+const ehAdmin = () => ADMIN_EMAILS.includes(usuarioAtual?.email);
+const quem = () => ({ nome: usuarioAtual?.nome || null, email: usuarioAtual?.email || null });
+const agoraISO = () => new Date().toISOString();
+const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+function mesesDaSafra(s) {
+  if (!s) return [];
+  return MESES_SAFRA.map(([n, abr]) => ({ ym: (Number(n) >= 4 ? s.ano_ini : s.ano_fim) + '-' + n, abr, ano: Number(n) >= 4 ? s.ano_ini : s.ano_fim }));
+}
+function toast(msg, erro) {
+  const t = document.createElement('div'); t.className = 'toast' + (erro ? ' erro' : ''); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), erro ? 6000 : 2600);
+}
+
+// Regra do IP: conta se realizada até o fim do mês planejado
+function contaNoIP(r) { return r.status === 'Realizada' && r.data_realizada && r.data_realizada <= fimDoMes(r.mes_planejado); }
+function situacao(r) {
+  if (r.status === 'Cancelada') return { cls: 'c-nok', i: '✖', txt: 'Cancelada' };
+  if (r.status === 'Realizada') return contaNoIP(r)
+    ? { cls: 'c-ok', i: '✔', txt: fmtData(r.data_realizada).slice(0, 5) }
+    : { cls: 'c-tarde', i: '✔', txt: 'fora do mês' };
+  if (r.mes_planejado < hojeMes()) return { cls: 'c-nok', i: '!', txt: 'sem baixa' };
+  if (r.mes_planejado === hojeMes()) return { cls: 'c-pend', i: '●', txt: 'dar baixa' };
+  return { cls: 'c-plan', i: '○', txt: 'planejada' };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Login (pelo portal)
+// ─────────────────────────────────────────────────────────────
+async function exigirLogin() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.replace(PORTAL_URL + '?voltar=' + encodeURIComponent(location.href.split('#')[0])); return false; }
+  const u = session.user;
+  const { data } = await sb.from('usuarios').select('nome').eq('auth_id', u.id).maybeSingle();
+  usuarioAtual = { nome: (data && data.nome) || u.email, email: (u.email || '').toLowerCase() };
+  const box = $('usuario-topo');
+  box.innerHTML = 'Conectado como <b></b><button type="button">Sair</button>';
+  box.querySelector('b').textContent = usuarioAtual.nome;
+  box.querySelector('button').onclick = async () => { await sb.auth.signOut(); location.href = PORTAL_URL; };
+  box.hidden = false;
+  return true;
+}
+
+async function init() {
+  if (!(await exigirLogin())) return;
+  const [rs, ru, ri] = await Promise.all([
+    sb.from('safras').select('id,nome,ano_ini,ano_fim').eq('ativa', true).order('ano_ini', { ascending: false }),
+    sb.from('unidades').select('id,nome').order('nome'),
+    sb.from('indicadores').select('id,nome').eq('ativo', true)
+  ]);
+  const err = rs.error || ru.error || ri.error;
+  if (err) { $('grades').innerHTML = `<div class="vazio">Não consegui ler o Supabase: ${esc(err.message)}</div>`; return; }
+  safras = rs.data || []; unidades = ru.data || [];
+  (ri.data || []).forEach(i => {
+    if (norm(i.nome) === norm(IND_BIM)) inds.bim = { ...i, rotulo: 'Bimestral', esperado: 6 };
+    if (norm(i.nome) === norm(IND_QUAD)) inds.quad = { ...i, rotulo: 'Quadrimestral', esperado: 3 };
+  });
+  $('f-safra').innerHTML = safras.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+  $('f-unid').innerHTML = '<option value="">Todas</option>' + unidades.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+  if (lsGet('com-unid') && unidades.some(u => String(u.id) === lsGet('com-unid'))) $('f-unid').value = lsGet('com-unid');
+  $('f-safra').onchange = carregar;
+  $('f-unid').onchange = () => { lsSet('com-unid', $('f-unid').value); render(); };
+  if (ehAdmin()) { $('btn-editar').classList.remove('hidden'); $('btn-padrao').classList.remove('hidden'); }
+  $('btn-editar').onclick = () => {
+    editando = !editando;
+    $('btn-editar').textContent = editando ? 'Concluir edição' : 'Editar calendário';
+    $('btn-editar').classList.toggle('ativo', editando);
+    $('aviso-edicao').classList.toggle('hidden', !editando);
+    render();
+  };
+  $('btn-padrao').onclick = abrirLote;
+  $('btn-exportar').onclick = exportar;
+  document.querySelectorAll('.aba').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.aba').forEach(x => x.classList.toggle('ativa', x === b));
+    $('aba-reun').classList.toggle('hidden', b.dataset.aba !== 'reun');
+    $('aba-capex').classList.toggle('hidden', b.dataset.aba !== 'capex');
+  });
+  carregar();
+}
+
+async function carregar() {
+  const s = safraAtual(); if (!s) return;
+  $('grades').innerHTML = '<div class="carregando">Carregando...</div>';
+  const idsInd = [inds.bim?.id, inds.quad?.id].filter(Boolean);
+  if (!idsInd.length) { $('grades').innerHTML = `<div class="vazio">Não encontrei os indicadores "${esc(IND_BIM)}" e "${esc(IND_QUAD)}" no cadastro do IP.</div>`; return; }
+
+  const rg = await sb.from('gerencias').select('id,nome,unidade_id,unidades(nome)').eq('ativo', true);
+  let rc = await sb.from('ind_gerencia_safra').select('gerencia_id,indicador_id').eq('safra_id', s.id).eq('ativo', true).in('indicador_id', idsInd);
+  if (!rc.error && !(rc.data || []).length) rc = await sb.from('ind_gerencia_safra').select('gerencia_id,indicador_id').eq('ativo', true).in('indicador_id', idsInd);
+  const rr = await sb.from('comite_reunioes').select('*').eq('safra_id', s.id).in('indicador_id', idsInd);
+  const err = rg.error || rc.error || rr.error;
+  if (err) { $('grades').innerHTML = `<div class="vazio">Erro: ${esc(err.message)}${String(err.message).includes('comite_reunioes') ? '<br>Rode antes o SQL de criação da tabela.' : ''}</div>`; return; }
+
+  gerencias = rg.data || []; reunioes = rr.data || [];
+  const vistos = new Set();
+  linhas = [];
+  (rc.data || []).forEach(c => {
+    const k = c.gerencia_id + '|' + c.indicador_id;
+    const g = gerencias.find(x => x.id === c.gerencia_id);
+    if (!g || vistos.has(k)) return;
+    vistos.add(k);
+    linhas.push({ ger: g, ind: c.indicador_id === inds.bim?.id ? inds.bim : inds.quad });
+  });
+  linhas.sort((a, b) => a.ger.nome.localeCompare(b.ger.nome) || (a.ger.unidades?.nome || '').localeCompare(b.ger.unidades?.nome || ''));
+  render();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grade gerência × mês
+// ─────────────────────────────────────────────────────────────
+function linhasVisiveis() {
+  const u = Number($('f-unid').value);
+  if (!u) return linhas;
+  const nomeU = norm(unidades.find(x => x.id === u)?.nome);
+  return linhas.filter(l => l.ger.unidade_id === u || norm(l.ger.unidades?.nome).split('/').includes(nomeU));
+}
+function reuniaoDe(l, ym) { return reunioes.find(r => r.gerencia_id === l.ger.id && r.indicador_id === l.ind.id && r.mes_planejado === ym); }
+
+function render() {
+  const s = safraAtual(); if (!s) return;
+  const meses = mesesDaSafra(s);
+  const vis = linhasVisiveis();
+  if (!vis.length) { $('grades').innerHTML = '<div class="vazio">Nenhuma gerência com indicador de reunião de comitê configurado nesta safra.</div>'; $('resumo').textContent = ''; return; }
+
+  const doMes = reunioes.filter(r => r.mes_planejado === hojeMes() && vis.some(l => l.ger.id === r.gerencia_id && l.ind.id === r.indicador_id));
+  const faltam = doMes.filter(r => r.status === 'Planejada').length;
+  $('resumo').textContent = doMes.length ? `${nomeMesLongo(hojeMes())}: ${doMes.length} reunião(ões) planejada(s), ${faltam} sem baixa.` : `Nenhuma reunião planejada em ${nomeMesLongo(hojeMes()).toLowerCase()}.`;
+
+  $('grades').innerHTML = ['bim', 'quad'].filter(k => inds[k]).map(k => {
+    const ls = vis.filter(l => l.ind.id === inds[k].id);
+    if (!ls.length) return '';
+    const corpo = ls.map(l => {
+      const minhas = reunioes.filter(r => r.gerencia_id === l.ger.id && r.indicador_id === l.ind.id);
+      const ok = minhas.filter(contaNoIP).length;
+      const nPlan = minhas.length;
+      const alerta = nPlan !== l.ind.esperado ? `<span style="color:var(--aviso)"> · ${nPlan} de ${l.ind.esperado} meses marcados</span>` : '';
+      const cels = meses.map(m => {
+        const r = reuniaoDe(l, m.ym);
+        if (!r) return `<td><div class="cel c-vazio ${editando ? 'edit clic' : ''}" ${editando ? `onclick="planejar(${l.ger.id},${l.ind.id},'${m.ym}')" title="Planejar reunião"` : ''}>${editando ? '+' : ''}</div></td>`;
+        const st = situacao(r);
+        return `<td><div class="cel ${st.cls} clic" onclick="clicarReuniao(${r.id})" title="${esc(st.txt)}"><span class="i">${st.i}</span>${esc(st.txt)}</div></td>`;
+      }).join('');
+      return `<tr><td class="ger"><b>${esc(l.ger.nome)}</b><span>${esc(l.ger.unidades?.nome || '')}${alerta}</span></td>${cels}<td class="tot">${ok}/${nPlan}</td></tr>`;
+    }).join('');
+    return `<div class="grupo-titulo">${inds[k].rotulo} <span style="font-size:14px;color:var(--muted);font-family:Barlow">(${inds[k].esperado} reuniões na safra)</span></div>
+      <div class="grade"><table><thead><tr><th style="text-align:left;padding-left:10px">Gerência</th>
+      ${meses.map(m => `<th class="${m.ym === hojeMes() ? 'atual' : ''}">${m.abr}/${String(m.ano).slice(2)}</th>`).join('')}<th>No IP</th></tr></thead>
+      <tbody>${corpo}</tbody></table></div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calendário (só administrador)
+// ─────────────────────────────────────────────────────────────
+async function planejar(gerId, indId, ym) {
+  if (!ehAdmin() || !editando) return;
+  const { data, error } = await sb.from('comite_reunioes').insert({
+    safra_id: safraAtual().id, gerencia_id: gerId, indicador_id: indId, mes_planejado: ym, status: 'Planejada',
+    criado_por: quem().nome, criado_por_email: quem().email, atualizado_por: quem().nome, atualizado_por_email: quem().email, atualizado_em: agoraISO()
+  }).select('*');
+  if (error) { toast('Não salvou: ' + error.message, true); return; }
+  reunioes.push(data[0]); render();
+}
+async function despla(r) {
+  if (r.status !== 'Planejada') { toast('Essa reunião já tem baixa ou foi cancelada. Desfaça a baixa antes de tirar do calendário.', true); return; }
+  const { error } = await sb.from('comite_reunioes').delete().eq('id', r.id);
+  if (error) { toast('Não removeu: ' + error.message, true); return; }
+  reunioes = reunioes.filter(x => x.id !== r.id); render();
+}
+function clicarReuniao(id) {
+  const r = reunioes.find(x => x.id === id); if (!r) return;
+  if (editando) return despla(r);
+  abrirBaixa(r);
+}
+
+function abrirLote() {
+  if (!ehAdmin()) return;
+  const meses = mesesDaSafra(safraAtual());
+  const opcoes = ['bim', 'quad'].filter(k => inds[k]);
+  abrirModal(`
+    <h3>Marcar meses em lote</h3>
+    <p class="desc">Aplica os meses marcados a todas as gerências da frequência escolhida${$('f-unid').value ? ' (só da unidade filtrada)' : ''}. Meses desmarcados são retirados, exceto os que já têm baixa ou cancelamento.</p>
+    <div class="campo"><label for="l-freq">Frequência</label>
+      <select id="l-freq">${opcoes.map(k => `<option value="${k}">${inds[k].rotulo} (${inds[k].esperado} reuniões)</option>`).join('')}</select></div>
+    <div class="meses-chk" id="l-meses">${meses.map(m => `<label><input type="checkbox" value="${m.ym}"> ${m.abr}/${String(m.ano).slice(2)}</label>`).join('')}</div>
+    <div id="l-conta" style="font-size:13px;color:var(--muted);margin:-6px 0 12px"></div>
+    <div id="m-erro" class="erro-form"></div>
+    <div class="rodape"><button class="btn btn-sec" onclick="fecharModal()">Voltar</button><button class="btn btn-primario" id="l-aplicar">Aplicar</button></div>`);
+  const conta = () => {
+    const k = $('l-freq').value, n = document.querySelectorAll('#l-meses input:checked').length;
+    $('l-conta').textContent = `${n} mês(es) marcado(s)` + (n !== inds[k].esperado ? ` — o esperado para ${inds[k].rotulo.toLowerCase()} é ${inds[k].esperado}.` : '.');
+  };
+  document.querySelectorAll('#l-meses input').forEach(c => c.onchange = conta);
+  $('l-freq').onchange = conta; conta();
+  $('l-aplicar').onclick = async () => {
+    const k = $('l-freq').value, ind = inds[k];
+    const marcados = [...document.querySelectorAll('#l-meses input:checked')].map(c => c.value);
+    const ls = linhasVisiveis().filter(l => l.ind.id === ind.id);
+    if (!ls.length) { $('m-erro').textContent = 'Nenhuma gerência com essa frequência.'; return; }
+    if (!confirm(`Aplicar ${marcados.length} mês(es) a ${ls.length} gerência(s) ${ind.rotulo.toLowerCase()}(s)?`)) return;
+    const btn = $('l-aplicar'); btn.disabled = true; btn.textContent = 'Aplicando...';
+    const inserir = [], apagar = [];
+    ls.forEach(l => {
+      mesesDaSafra(safraAtual()).forEach(m => {
+        const r = reuniaoDe(l, m.ym);
+        if (marcados.includes(m.ym) && !r) inserir.push({ safra_id: safraAtual().id, gerencia_id: l.ger.id, indicador_id: ind.id, mes_planejado: m.ym, status: 'Planejada',
+          criado_por: quem().nome, criado_por_email: quem().email, atualizado_por: quem().nome, atualizado_por_email: quem().email, atualizado_em: agoraISO() });
+        if (!marcados.includes(m.ym) && r && r.status === 'Planejada') apagar.push(r.id);
+      });
+    });
+    if (inserir.length) { const { error } = await sb.from('comite_reunioes').insert(inserir); if (error) { btn.disabled = false; btn.textContent = 'Aplicar'; $('m-erro').textContent = error.message; return; } }
+    for (let i = 0; i < apagar.length; i += 200) {
+      const { error } = await sb.from('comite_reunioes').delete().in('id', apagar.slice(i, i + 200));
+      if (error) { $('m-erro').textContent = error.message; btn.disabled = false; return; }
+    }
+    fecharModal(); toast(`${inserir.length} reunião(ões) planejada(s), ${apagar.length} retirada(s).`); carregar();
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Baixa da reunião
+// ─────────────────────────────────────────────────────────────
+function abrirBaixa(r) {
+  const l = linhas.find(x => x.ger.id === r.gerencia_id && x.ind.id === r.indicador_id);
+  const feita = r.status === 'Realizada', cancelada = r.status === 'Cancelada';
+  const info = [];
+  if (r.baixa_por) info.push(`Baixa por <b>${esc(r.baixa_por)}</b> em ${fmtData(r.baixa_em)}`);
+  if (r.atualizado_por && r.atualizado_por !== r.baixa_por && r.atualizado_em) info.push(`Última alteração: ${esc(r.atualizado_por)} em ${fmtData(r.atualizado_em)}`);
+  if (cancelada && r.motivo) info.push('Motivo do cancelamento: ' + esc(r.motivo));
+  abrirModal(`
+    <h3>${cancelada ? 'Reunião cancelada' : feita ? 'Baixa da reunião' : 'Dar baixa na reunião'}</h3>
+    <p class="desc">${esc(l?.ger.nome || '')} · ${esc(l?.ind.rotulo || '')}<br>Mês planejado: ${nomeMesLongo(r.mes_planejado)}. Conta no IP se realizada até ${fmtData(fimDoMes(r.mes_planejado))}.</p>
+    ${info.length ? `<div class="info-baixa">${info.join('<br>')}</div>` : ''}
+    <div class="linha2">
+      <div class="campo"><label for="m-data">Data em que foi realizada</label><input type="date" id="m-data" max="${hojeISO()}" value="${r.data_realizada || ''}"></div>
+      <div class="campo"><label for="m-part">Nº de participantes (opcional)</label><input type="number" min="0" id="m-part" value="${r.participantes ?? ''}"></div>
+    </div>
+    <div class="campo"><label for="m-ata">Link da ata / evidência no SharePoint</label><input type="url" id="m-ata" value="${esc(r.ata_url || '')}" placeholder="https://suaempresa.sharepoint.com/..."></div>
+    <div class="campo"><label for="m-obs">Observações</label><textarea id="m-obs">${esc(r.observacoes || '')}</textarea></div>
+    <div id="m-aviso" style="font-size:13px;color:var(--aviso);margin:-6px 0 10px"></div>
+    <div id="m-erro" class="erro-form"></div>
+    <div class="rodape">
+      ${feita || cancelada ? '<button class="btn btn-perigo" id="m-desfazer" style="margin-right:auto">' + (feita ? 'Desfazer baixa' : 'Desfazer cancelamento') + '</button>' : '<button class="btn btn-perigo" id="m-cancelar" style="margin-right:auto">Cancelar reunião</button>'}
+      <button class="btn btn-sec" onclick="fecharModal()">Voltar</button>
+      ${cancelada ? '' : `<button class="btn btn-primario" id="m-salvar">${feita ? 'Salvar alterações' : 'Confirmar baixa'}</button>`}
+    </div>`);
+  const aviso = () => { const d = $('m-data').value; $('m-aviso').textContent = d && d > fimDoMes(r.mes_planejado) ? 'Realizada depois do mês planejado: fica registrada, mas não conta no IP de ' + nomeMesLongo(r.mes_planejado) + '.' : ''; };
+  $('m-data').oninput = aviso; aviso();
+  const auditoria = { atualizado_por: quem().nome, atualizado_por_email: quem().email, atualizado_em: agoraISO() };
+  if ($('m-salvar')) $('m-salvar').onclick = async () => {
+    const d = $('m-data').value;
+    if (!d) { $('m-erro').textContent = 'Informe a data em que a reunião foi realizada.'; return; }
+    if (d > hojeISO()) { $('m-erro').textContent = 'A data não pode ser futura.'; return; }
+    if (!$('m-ata').value.trim()) { $('m-erro').textContent = 'Informe o link da ata.'; return; }
+    const dados = { status: 'Realizada', data_realizada: d, ata_url: $('m-ata').value.trim(),
+      participantes: $('m-part').value === '' ? null : Number($('m-part').value), observacoes: $('m-obs').value.trim() || null, ...auditoria,
+      ...(feita && r.baixa_por ? {} : { baixa_por: quem().nome, baixa_por_email: quem().email, baixa_em: agoraISO() }) };
+    await salvarReuniao(r, dados, feita ? 'Baixa atualizada' : 'Baixa registrada');
+  };
+  if ($('m-desfazer')) $('m-desfazer').onclick = async () => {
+    if (!confirm(feita ? 'Desfazer a baixa desta reunião?' : 'Desfazer o cancelamento?')) return;
+    await salvarReuniao(r, { status: 'Planejada', data_realizada: null, baixa_por: null, baixa_por_email: null, baixa_em: null, motivo: null, ...auditoria }, 'Desfeito');
+  };
+  if ($('m-cancelar')) $('m-cancelar').onclick = async () => {
+    const motivo = prompt('Motivo do cancelamento (a reunião continua no previsto e conta como não realizada no IP):');
+    if (!motivo || !motivo.trim()) return;
+    await salvarReuniao(r, { status: 'Cancelada', motivo: motivo.trim(), ...auditoria }, 'Reunião cancelada');
+  };
+}
+async function salvarReuniao(r, dados, msg) {
+  const { data, error } = await sb.from('comite_reunioes').update(dados).eq('id', r.id).select('*');
+  if (error) { $('m-erro').textContent = 'Não salvou: ' + error.message; return; }
+  Object.assign(r, data[0]); fecharModal(); toast(msg); render();
+}
+
+function abrirModal(html) {
+  $('modal-raiz').innerHTML = `<div class="fundo-modal" onclick="if(event.target===this)fecharModal()"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const p = $('modal-raiz').querySelector('input,select,textarea'); if (p) p.focus();
+}
+function fecharModal() { $('modal-raiz').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+// ─────────────────────────────────────────────────────────────
+// Exportação
+// ─────────────────────────────────────────────────────────────
+function exportar() {
+  const s = safraAtual(), meses = mesesDaSafra(s);
+  const cab = ['Gerência', 'Unidade', 'Frequência', ...meses.map(m => m.abr + '/' + String(m.ano).slice(2)), 'Realizadas no mês', 'Planejadas'];
+  const corpo = linhasVisiveis().map(l => {
+    const minhas = reunioes.filter(r => r.gerencia_id === l.ger.id && r.indicador_id === l.ind.id);
+    return [l.ger.nome, l.ger.unidades?.nome || '', l.ind.rotulo, ...meses.map(m => {
+      const r = reuniaoDe(l, m.ym); if (!r) return '';
+      return r.status === 'Realizada' ? (contaNoIP(r) ? 'R ' + fmtData(r.data_realizada) : 'R fora do mês') : r.status === 'Cancelada' ? 'Cancelada' : 'P';
+    }), minhas.filter(contaNoIP).length, minhas.length];
+  });
+  const det = reunioes.filter(r => r.status !== 'Planejada').map(r => {
+    const l = linhas.find(x => x.ger.id === r.gerencia_id && x.ind.id === r.indicador_id);
+    return [l?.ger.nome || r.gerencia_id, l?.ind.rotulo || '', r.mes_planejado, r.status, fmtData(r.data_realizada), r.ata_url || '', r.baixa_por || '', r.motivo || '', r.observacoes || ''];
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([[`Reuniões de Comitê de SSMA — Safra ${s.nome}`], ['P = planejada, R = realizada'], cab, ...corpo]);
+  ws['!cols'] = [{ wch: 42 }, { wch: 8 }, { wch: 13 }, ...meses.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Cronograma');
+  const ws2 = XLSX.utils.aoa_to_sheet([['Gerência', 'Frequência', 'Mês planejado', 'Status', 'Data realizada', 'Ata', 'Baixa por', 'Motivo', 'Observações'], ...det]);
+  ws2['!cols'] = [{ wch: 42 }, { wch: 13 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 40 }, { wch: 22 }, { wch: 30 }, { wch: 40 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Baixas');
+  XLSX.writeFile(wb, `Reunioes_Comite_SSMA_${s.nome.replace(/\W+/g, '-')}.xlsx`);
+}
+
+init();
+</script>
+</body>
+</html>
